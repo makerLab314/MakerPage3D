@@ -15,9 +15,9 @@ An immersive 3D virtual tour of MakerLab - a creative space for innovation, 3D p
 - Smooth transition to 3D environment
 
 ### 🌐 3D Virtual Environment
-- Three.js-powered 3D room
+- Canvas 2D-powered pseudo-3D room with perspective rendering
 - First-person navigation (WASD/Arrow keys + mouse look)
-- Realistic lighting and shadows
+- Gradient-based lighting effects
 - Interactive markers throughout the space
 
 ### 🔧 Equipment Showcase
@@ -51,7 +51,7 @@ An immersive 3D virtual tour of MakerLab - a creative space for innovation, 3D p
 - **HTML5** - Structure and semantic markup
 - **CSS3** - Advanced styling with glass morphism, animations, and responsive design
 - **JavaScript (ES6+)** - Application logic and interactivity
-- **Three.js** - 3D rendering and scene management
+- **Canvas 2D API** - Pseudo-3D rendering with perspective projection
 
 ## Getting Started
 
@@ -186,7 +186,8 @@ Edit the `NewsData` array in `app.js`:
 
 ## Future Enhancements
 
-- [ ] Actual Gaussian Splat integration for photorealistic room capture
+- [ ] Actual Gaussian Splat integration for photorealistic room capture (requires WebGL library)
+- [ ] Upgrade to Three.js or WebGL for true 3D rendering with realistic lighting
 - [ ] VR/AR support for immersive experiences
 - [ ] Multiplayer collaboration features
 - [ ] Additional interactive mini-games
