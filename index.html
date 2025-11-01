@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MakerLab - 3D Experience</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Landing Page -->
+    <div id="landing-page" class="active">
+        <div class="glass-window">
+            <div class="logo">
+                <h1>MakerLab</h1>
+                <div class="logo-icon">⚙️🔧</div>
+            </div>
+            <p class="description">
+                Welcome to MakerLab - Your Creative Space for Innovation, 
+                3D Printing, and Collaborative Making. Explore our virtual 
+                space and discover what we have to offer.
+            </p>
+            <button id="go-in-btn" class="go-in-button">
+                <span>Go In</span>
+                <div class="arrow">→</div>
+            </button>
+        </div>
+        <div class="background-animation"></div>
+    </div>
+
+    <!-- Door Entry Scene -->
+    <div id="door-scene" class="scene">
+        <div class="door-container">
+            <div class="swipe-hint" id="swipe-hint">
+                <div class="swipe-icon">↑</div>
+                <p>Swipe Up to Enter</p>
+            </div>
+            <div class="door-frame">
+                <div class="door left-door" id="left-door"></div>
+                <div class="door right-door" id="right-door"></div>
+                <div class="door-knob"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3D Environment -->
+    <div id="three-scene" class="scene">
+        <canvas id="three-canvas"></canvas>
+        
+        <!-- UI Overlay -->
+        <div class="ui-overlay">
+            <button id="back-btn" class="nav-button">← Back</button>
+            <div class="controls-hint">
+                <p>Use WASD or Arrow Keys to move | Mouse to look around | Click on objects to interact</p>
+            </div>
+        </div>
+
+        <!-- Info Panel (for equipment details) -->
+        <div id="info-panel" class="glass-panel hidden">
+            <button class="close-btn" id="close-info">×</button>
+            <div id="panel-content">
+                <h2 id="panel-title"></h2>
+                <div id="panel-description"></div>
+                <div id="panel-specs"></div>
+            </div>
+        </div>
+
+        <!-- Projects View (3D Cards) -->
+        <div id="projects-view" class="view-mode hidden">
+            <button class="close-btn" id="close-projects">×</button>
+            <h2>Our Projects</h2>
+            <div id="projects-container" class="cards-container"></div>
+        </div>
+
+        <!-- Members View (3D Cards) -->
+        <div id="members-view" class="view-mode hidden">
+            <button class="close-btn" id="close-members">×</button>
+            <h2>Team Members</h2>
+            <div id="members-container" class="cards-container"></div>
+        </div>
+
+        <!-- News View -->
+        <div id="news-view" class="view-mode hidden">
+            <button class="close-btn" id="close-news">×</button>
+            <h2>Latest News & Updates</h2>
+            <div id="news-container" class="news-grid"></div>
+        </div>
+
+        <!-- Interactive Markers -->
+        <div id="markers-container"></div>
+    </div>
+
+    <!-- Easter Egg Modal -->
+    <div id="easter-egg-modal" class="modal hidden">
+        <div class="modal-content glass-window">
+            <button class="close-btn" id="close-easter">×</button>
+            <h2 id="easter-title"></h2>
+            <p id="easter-message"></p>
+        </div>
+    </div>
+
+    <!-- Loading Screen -->
+    <div id="loading-screen">
+        <div class="loader"></div>
+        <p>Loading MakerLab Experience...</p>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
