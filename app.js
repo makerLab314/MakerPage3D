@@ -210,36 +210,6 @@ function transitionToDoorScene() {
 
 function playVideo() {
     const video = document.getElementById('door-video');
-    const swipeHint = document.getElementById('swipe-hint');
-    const doorFrameFallback = document.getElementById('door-frame-fallback');
-    
-    swipeHint.style.display = 'none';
-    doorFrameFallback.style.display = 'none';
-    
-    // Play video in fullscreen
-    if (video && video.canPlayType('video/mp4')) {
-        video.classList.add('playing');
-        video.play();
-        
-        // Transition when video ends
-        video.onended = () => {
-            transition3DScene();
-        };
-    } else {
-        // Fallback - go directly to 3D scene if video can't play
-        setTimeout(() => {
-            transition3DScene();
-        }, 1000);
-    }
-}
-
-function playVideo() {
-    const video = document.getElementById('door-video');
-    const swipeHint = document.getElementById('swipe-hint');
-    const doorFrameFallback = document.getElementById('door-frame-fallback');
-    
-    swipeHint.style.display = 'none';
-    doorFrameFallback.style.display = 'none';
     
     // Play video in fullscreen
     if (video && video.canPlayType('video/mp4')) {
