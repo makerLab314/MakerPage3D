@@ -63,7 +63,7 @@ const server = http.createServer((req, res) => {
         } else {
             res.writeHead(200, { 'Content-Type': contentType });
             // Don't specify encoding for binary files, only for text files
-            const textTypes = ['text/', 'application/json', 'application/javascript', 'text/javascript'];
+            const textTypes = ['text/', 'application/json', 'text/javascript'];
             const isText = textTypes.some(type => contentType.startsWith(type));
             res.end(content, isText ? 'utf-8' : undefined);
         }

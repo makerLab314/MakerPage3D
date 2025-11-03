@@ -52,7 +52,7 @@ An immersive 3D virtual tour of MakerLab - a creative space for innovation, 3D p
 - **CSS3** - Advanced styling with glass morphism, animations, and responsive design
 - **JavaScript (ES6+ Modules)** - Application logic and interactivity
 - **Three.js (r160)** - 3D rendering engine
-- **GaussianSplats3D** - Photorealistic 3D environment rendering using Gaussian Splatting
+- **@mkkellogg/gaussian-splats-3d** - Photorealistic 3D environment rendering using Gaussian Splatting
 
 ## Getting Started
 
