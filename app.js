@@ -1,3 +1,7 @@
+// Import Three.js and GaussianSplats3D as ES modules
+import * as THREE from 'three';
+import * as GaussianSplats3D from '@mkkellogg/gaussian-splats-3d';
+
 // Application State
 const AppState = {
     currentScene: 'landing',
