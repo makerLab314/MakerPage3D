@@ -19,6 +19,12 @@ const AppState = {
     easterEggsFound: []
 };
 
+// Configuration Constants
+const Config = {
+    GAUSSIAN_SPLAT_FILE: 'gs_MakerLAB.ply',
+    INTERACTION_DISTANCE: 0.5
+};
+
 // Data for the application
 const EquipmentData = [
     {
@@ -301,7 +307,7 @@ function init3DScene() {
         useBuiltInControls: false
     });
     
-    viewer.addSplatScene('gs_MakerLAB.ply')
+    viewer.addSplatScene(Config.GAUSSIAN_SPLAT_FILE)
         .then(() => {
             console.log('Gaussian Splat loaded successfully!');
         })
@@ -556,7 +562,7 @@ function handleClick(event) {
         const markerPos = new THREE.Vector3(obj.position.x, obj.position.y, obj.position.z);
         const distance = raycaster.ray.distanceToPoint(markerPos);
         
-        if (distance < 0.5) {
+        if (distance < Config.INTERACTION_DISTANCE) {
             handleObjectInteraction(obj);
             break;
         }
