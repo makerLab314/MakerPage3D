@@ -50,14 +50,15 @@ An immersive 3D virtual tour of MakerLab - a creative space for innovation, 3D p
 
 - **HTML5** - Structure and semantic markup
 - **CSS3** - Advanced styling with glass morphism, animations, and responsive design
-- **JavaScript (ES6+)** - Application logic and interactivity
-- **Canvas 2D API** - Pseudo-3D rendering with perspective projection
+- **JavaScript (ES6+ Modules)** - Application logic and interactivity
+- **Three.js (r160)** - 3D rendering engine
+- **@mkkellogg/gaussian-splats-3d** - Photorealistic 3D environment rendering using Gaussian Splatting
 
 ## Getting Started
 
 ### Prerequisites
-- Modern web browser (Chrome, Firefox, Safari, Edge)
-- No build tools required - pure vanilla JavaScript
+- Modern web browser (Chrome, Firefox, Safari, Edge) with WebGL support
+- Node.js (v14 or higher) for running the development server
 
 ### Installation
 
@@ -67,31 +68,33 @@ git clone https://github.com/makerLab314/MakerPage3D.git
 cd MakerPage3D
 ```
 
-2. Serve the files using any local server:
+2. Install dependencies:
+```bash
+npm install
+```
+
+3. Start the development server (with CORS headers for SharedArrayBuffer):
+```bash
+npm start
+```
+
+4. Open your browser and navigate to:
+```
+http://localhost:8000
+```
+
+**Note:** The custom server (`server.js`) is required for proper Gaussian Splat rendering as it sets the necessary CORS headers (`Cross-Origin-Opener-Policy` and `Cross-Origin-Embedder-Policy`) for SharedArrayBuffer support.
+
+**Alternative servers** (if you don't need Gaussian Splat features):
 
 **Python 3:**
 ```bash
 python -m http.server 8000
 ```
 
-**Python 2:**
-```bash
-python -m SimpleHTTPServer 8000
-```
-
-**Node.js (http-server):**
-```bash
-npx http-server -p 8000
-```
-
 **PHP:**
 ```bash
 php -S localhost:8000
-```
-
-3. Open your browser and navigate to:
-```
-http://localhost:8000
 ```
 
 ## Usage

@@ -1,0 +1,20 @@
+{
+  "name": "makerpage3d",
+  "version": "1.0.0",
+  "description": "An immersive 3D virtual tour of MakerLab - a creative space for innovation, 3D printing, and collaborative making.",
+  "main": "app.js",
+  "directories": {
+    "lib": "lib"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@mkkellogg/gaussian-splats-3d": "^0.4.0",
+    "three": "^0.160.0"
+  }
+}

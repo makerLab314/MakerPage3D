@@ -5,10 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MakerLab - 3D Experience</title>
     <link rel="stylesheet" href="styles.css">
-    <!-- Three.js for Gaussian Splat rendering -->
-    <script src="https://unpkg.com/three@0.158.0/build/three.min.js"></script>
-    <!-- Gaussian Splat Loader -->
-    <script src="https://unpkg.com/@mkkellogg/gaussian-splats-3d@0.4.0/build/gaussian-splats-3d.umd.cjs"></script>
+    <!-- Import Maps for ES Modules -->
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "./node_modules/three/build/three.module.js",
+            "three/addons/": "./node_modules/three/examples/jsm/",
+            "@mkkellogg/gaussian-splats-3d": "./node_modules/@mkkellogg/gaussian-splats-3d/build/gaussian-splats-3d.module.js"
+        }
+    }
+    </script>
 </head>
 <body>
     <!-- Landing Page -->
@@ -102,6 +108,6 @@
         <p>Loading MakerLab Experience...</p>
     </div>
 
-    <script src="app.js"></script>
+    <script type="module" src="app.js"></script>
 </body>
 </html>
