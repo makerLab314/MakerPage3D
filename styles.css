@@ -591,3 +591,20 @@ body {
 ::-webkit-scrollbar-thumb:hover {
     background: var(--secondary-color);
 }
+
+.door-video {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 400px;
+    height: 600px;
+    object-fit: cover;
+    border-radius: 10px;
+    display: none;
+    z-index: 10;
+}
+
+.door-video.playing {
+    display: block;
+}

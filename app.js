@@ -231,17 +231,35 @@ function transitionToDoorScene() {
 }
 
 function openDoor() {
-    const leftDoor = document.getElementById('left-door');
-    const rightDoor = document.getElementById('right-door');
+    const video = document.getElementById('door-video');
     const swipeHint = document.getElementById('swipe-hint');
+    const doorFrameFallback = document.getElementById('door-frame-fallback');
     
     swipeHint.style.display = 'none';
-    leftDoor.classList.add('open');
-    rightDoor.classList.add('open');
     
-    setTimeout(() => {
-        transition3DScene();
-    }, 1200);
+    // Check if video exists and can play
+    if (video && video.canPlayType('video/mp4')) {
+        video.classList.add('playing');
+        doorFrameFallback.style.display = 'none';
+        
+        video.play();
+        
+        // Transition when video ends
+        video.onended = () => {
+            transition3DScene();
+        };
+    } else {
+        // Fallback to CSS animation
+        const leftDoor = document.getElementById('left-door');
+        const rightDoor = document.getElementById('right-door');
+        
+        leftDoor.classList.add('open');
+        rightDoor.classList.add('open');
+        
+        setTimeout(() => {
+            transition3DScene();
+        }, 1200);
+    }
 }
 
 function transition3DScene() {
@@ -275,36 +293,62 @@ function backToLanding() {
     }
 }
 
-// 3D Scene Setup - Canvas 2D Implementation
 function init3DScene() {
-    const canvas = document.getElementById('three-canvas');
-    const ctx = canvas.getContext('2d');
+    const container = document.getElementById('three-scene');
     
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    // Create Three.js scene
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(
+        75,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        1000
+    );
     
-    AppState.renderer = { ctx, canvas };
-    AppState.camera = {
-        position: { x: 0, y: 0, z: 10 },
-        rotation: { x: 0, y: 0 }
-    };
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
     
-    // Initialize scene objects
-    AppState.scene = {
-        objects: [],
-        interactiveObjects: []
-    };
+    // Replace canvas
+    const oldCanvas = document.getElementById('three-canvas');
+    oldCanvas.parentNode.replaceChild(renderer.domElement, oldCanvas);
+    renderer.domElement.id = 'three-canvas';
     
-    // Create room environment
-    createRoom();
-    createEquipmentMarkers();
-    createInteractiveObjects();
-    createEasterEggs();
+    // Load Gaussian Splat
+    const viewer = new GaussianSplats3D.Viewer({
+        scene: scene,
+        renderer: renderer,
+        camera: camera,
+        useBuiltInControls: false
+    });
     
-    // Controls
+    viewer.addSplatScene('assets/makerlab-room.splat')
+        .then(() => {
+            console.log('Gaussian Splat loaded successfully!');
+        });
+    
+    // Set initial camera position
+    camera.position.set(0, 1.6, 10);
+    
+    AppState.renderer = renderer;
+    AppState.camera = camera;
+    AppState.scene = scene;
+    
+    // Keep existing controls and markers
     setupControls();
+    createInteractiveMarkers3D();
     
-    // Start animation loop
+    // Animation loop
+    function animate() {
+        if (!AppState.isIn3DScene) return;
+        requestAnimationFrame(animate);
+        
+        updateMovement();
+        updateCamera();
+        
+        viewer.update();
+        renderer.render(scene, camera);
+    }
+    
     animate();
 }
 
@@ -730,3 +774,4 @@ function onWindowResize() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 }
+
