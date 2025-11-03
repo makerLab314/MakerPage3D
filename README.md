@@ -58,9 +58,18 @@ An immersive 3D virtual tour of MakerLab - a creative space for innovation, 3D p
 
 ### Prerequisites
 - Modern web browser (Chrome, Firefox, Safari, Edge) with WebGL support
-- Node.js (v14 or higher) for running the development server
+- Node.js (v14 or higher) for running the development server (optional for local development)
 
-### Installation
+### Quick Start (GitHub Pages)
+
+The application is deployed on GitHub Pages and loads all dependencies from CDN:
+```
+https://makerlab314.github.io/MakerPage3D/
+```
+
+No installation is required - just visit the URL in your browser!
+
+### Local Development
 
 1. Clone the repository:
 ```bash
@@ -68,7 +77,7 @@ git clone https://github.com/makerLab314/MakerPage3D.git
 cd MakerPage3D
 ```
 
-2. Install dependencies:
+2. (Optional) Install dependencies locally:
 ```bash
 npm install
 ```
@@ -83,7 +92,7 @@ npm start
 http://localhost:8000
 ```
 
-**Note:** The custom server (`server.js`) is required for proper Gaussian Splat rendering as it sets the necessary CORS headers (`Cross-Origin-Opener-Policy` and `Cross-Origin-Embedder-Policy`) for SharedArrayBuffer support.
+**Note:** The application loads Three.js and Gaussian Splats 3D from CDN (jsdelivr.net) by default, so it works directly from GitHub Pages without requiring `npm install`. The custom server (`server.js`) is recommended for proper Gaussian Splat rendering as it sets the necessary CORS headers (`Cross-Origin-Opener-Policy` and `Cross-Origin-Embedder-Policy`) for SharedArrayBuffer support.
 
 **Alternative servers** (if you don't need Gaussian Splat features):
 
