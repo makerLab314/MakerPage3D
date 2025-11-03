@@ -18,7 +18,8 @@ const mimeTypes = {
     '.css': 'text/css',
     '.json': 'application/json',
     '.png': 'image/png',
-    '.jpg': 'image/jpg',
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
     '.gif': 'image/gif',
     '.svg': 'image/svg+xml',
     '.wav': 'audio/wav',
@@ -61,7 +62,10 @@ const server = http.createServer((req, res) => {
             }
         } else {
             res.writeHead(200, { 'Content-Type': contentType });
-            res.end(content, 'utf-8');
+            // Don't specify encoding for binary files, only for text files
+            const textTypes = ['text/', 'application/json', 'application/javascript', 'text/javascript'];
+            const isText = textTypes.some(type => contentType.startsWith(type));
+            res.end(content, isText ? 'utf-8' : undefined);
         }
     });
 });
