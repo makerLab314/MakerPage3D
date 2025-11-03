@@ -19,6 +19,12 @@ const AppState = {
     easterEggsFound: []
 };
 
+// Configuration Constants
+const Config = {
+    GAUSSIAN_SPLAT_FILE: 'gs_MakerLAB.ply',
+    INTERACTION_DISTANCE: 0.5
+};
+
 // Data for the application
 const EquipmentData = [
     {
@@ -161,31 +167,6 @@ function initEventListeners() {
     // Landing page
     document.getElementById('go-in-btn').addEventListener('click', transitionToDoorScene);
     
-    // Door scene - touch/swipe
-    const doorScene = document.getElementById('door-scene');
-    let touchStartY = 0;
-    
-    doorScene.addEventListener('touchstart', (e) => {
-        touchStartY = e.touches[0].clientY;
-    });
-    
-    doorScene.addEventListener('touchend', (e) => {
-        const touchEndY = e.changedTouches[0].clientY;
-        const swipeDistance = touchStartY - touchEndY;
-        
-        if (swipeDistance > 50) { // Swipe up
-            openDoor();
-        }
-    });
-    
-    // Also allow click/keyboard for desktop
-    doorScene.addEventListener('click', openDoor);
-    document.addEventListener('keydown', (e) => {
-        if (AppState.isInDoorScene && (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W')) {
-            openDoor();
-        }
-    });
-    
     // Back button
     document.getElementById('back-btn').addEventListener('click', backToLanding);
     
@@ -227,21 +208,18 @@ function transitionToDoorScene() {
         doorScene.classList.add('active');
         AppState.isInDoorScene = true;
         AppState.currentScene = 'door';
+        
+        // Play video immediately
+        playVideo();
     }, 500);
 }
 
-function openDoor() {
+function playVideo() {
     const video = document.getElementById('door-video');
-    const swipeHint = document.getElementById('swipe-hint');
-    const doorFrameFallback = document.getElementById('door-frame-fallback');
     
-    swipeHint.style.display = 'none';
-    
-    // Check if video exists and can play
+    // Play video in fullscreen
     if (video && video.canPlayType('video/mp4')) {
         video.classList.add('playing');
-        doorFrameFallback.style.display = 'none';
-        
         video.play();
         
         // Transition when video ends
@@ -249,16 +227,10 @@ function openDoor() {
             transition3DScene();
         };
     } else {
-        // Fallback to CSS animation
-        const leftDoor = document.getElementById('left-door');
-        const rightDoor = document.getElementById('right-door');
-        
-        leftDoor.classList.add('open');
-        rightDoor.classList.add('open');
-        
+        // Fallback - go directly to 3D scene if video can't play
         setTimeout(() => {
             transition3DScene();
-        }, 1200);
+        }, 1000);
     }
 }
 
@@ -313,6 +285,20 @@ function init3DScene() {
     oldCanvas.parentNode.replaceChild(renderer.domElement, oldCanvas);
     renderer.domElement.id = 'three-canvas';
     
+    // Initialize scene objects array
+    if (!AppState.scene) {
+        AppState.scene = {};
+    }
+    AppState.scene.objects = [];
+    AppState.scene.interactiveObjects = [];
+    
+    // Set initial camera position
+    camera.position.set(0, 1.6, 10);
+    
+    AppState.renderer = renderer;
+    AppState.camera = camera;
+    AppState.scene.threeScene = scene;
+    
     // Load Gaussian Splat
     const viewer = new GaussianSplats3D.Viewer({
         scene: scene,
@@ -321,19 +307,18 @@ function init3DScene() {
         useBuiltInControls: false
     });
     
-    viewer.addSplatScene('assets/makerlab-room.splat')
+    viewer.addSplatScene(Config.GAUSSIAN_SPLAT_FILE)
         .then(() => {
             console.log('Gaussian Splat loaded successfully!');
+        })
+        .catch((error) => {
+            console.error('Error loading Gaussian Splat:', error);
         });
     
-    // Set initial camera position
-    camera.position.set(0, 1.6, 10);
+    // Store viewer reference
+    AppState.viewer = viewer;
     
-    AppState.renderer = renderer;
-    AppState.camera = camera;
-    AppState.scene = scene;
-    
-    // Keep existing controls and markers
+    // Setup controls and markers
     setupControls();
     createInteractiveMarkers3D();
     
@@ -352,16 +337,10 @@ function init3DScene() {
     animate();
 }
 
-function createRoom() {
-    // Create a pseudo-3D room using 2D canvas
-    AppState.scene.room = {
-        floor: { color: '#808080' },
-        walls: { color: '#e0e0e0' },
-        ceiling: { color: '#ffffff' }
-    };
-}
-
-function createEquipmentMarkers() {
+function createInteractiveMarkers3D() {
+    if (!AppState.scene.threeScene) return;
+    
+    // Create sample equipment markers with visible 3D objects
     EquipmentData.forEach(equipment => {
         const marker = {
             type: 'equipment',
@@ -371,12 +350,33 @@ function createEquipmentMarkers() {
             size: 40,
             color: '#00d4ff'
         };
+        
+        // Create visible 3D marker sphere
+        const geometry = new THREE.SphereGeometry(0.2, 16, 16);
+        const material = new THREE.MeshBasicMaterial({ 
+            color: 0x00d4ff,
+            transparent: true,
+            opacity: 0.8
+        });
+        const mesh = new THREE.Mesh(geometry, material);
+        mesh.position.set(equipment.position.x, equipment.position.y, equipment.position.z);
+        AppState.scene.threeScene.add(mesh);
+        marker.mesh = mesh;
+        
         AppState.scene.objects.push(marker);
         AppState.scene.interactiveObjects.push(marker);
     });
+    
+    // Create other interactive objects
+    createInteractiveObjects();
+    
+    // Create easter eggs
+    createEasterEggs();
 }
 
 function createInteractiveObjects() {
+    if (!AppState.scene.threeScene) return;
+    
     // Whiteboard (Projects trigger)
     const projectMarker = {
         type: 'projects-trigger',
@@ -386,6 +386,19 @@ function createInteractiveObjects() {
         color: '#7b2cbf',
         label: '📋 Projects'
     };
+    
+    // Create visible 3D marker
+    const projectGeo = new THREE.SphereGeometry(0.25, 16, 16);
+    const projectMat = new THREE.MeshBasicMaterial({ 
+        color: 0x7b2cbf,
+        transparent: true,
+        opacity: 0.8
+    });
+    const projectMesh = new THREE.Mesh(projectGeo, projectMat);
+    projectMesh.position.set(projectMarker.position.x, projectMarker.position.y, projectMarker.position.z);
+    AppState.scene.threeScene.add(projectMesh);
+    projectMarker.mesh = projectMesh;
+    
     AppState.scene.objects.push(projectMarker);
     AppState.scene.interactiveObjects.push(projectMarker);
     
@@ -398,6 +411,18 @@ function createInteractiveObjects() {
         color: '#00d4ff',
         label: '💻 News'
     };
+    
+    const newsGeo = new THREE.SphereGeometry(0.25, 16, 16);
+    const newsMat = new THREE.MeshBasicMaterial({ 
+        color: 0x00d4ff,
+        transparent: true,
+        opacity: 0.8
+    });
+    const newsMesh = new THREE.Mesh(newsGeo, newsMat);
+    newsMesh.position.set(newsMarker.position.x, newsMarker.position.y, newsMarker.position.z);
+    AppState.scene.threeScene.add(newsMesh);
+    newsMarker.mesh = newsMesh;
+    
     AppState.scene.objects.push(newsMarker);
     AppState.scene.interactiveObjects.push(newsMarker);
     
@@ -410,11 +435,25 @@ function createInteractiveObjects() {
         color: '#ffd700',
         label: '👥 Team'
     };
+    
+    const memberGeo = new THREE.SphereGeometry(0.25, 16, 16);
+    const memberMat = new THREE.MeshBasicMaterial({ 
+        color: 0xffd700,
+        transparent: true,
+        opacity: 0.8
+    });
+    const memberMesh = new THREE.Mesh(memberGeo, memberMat);
+    memberMesh.position.set(memberDisplay.position.x, memberDisplay.position.y, memberDisplay.position.z);
+    AppState.scene.threeScene.add(memberMesh);
+    memberDisplay.mesh = memberMesh;
+    
     AppState.scene.objects.push(memberDisplay);
     AppState.scene.interactiveObjects.push(memberDisplay);
 }
 
 function createEasterEggs() {
+    if (!AppState.scene.threeScene) return;
+    
     EasterEggs.forEach(egg => {
         const eggMarker = {
             type: 'easter-egg',
@@ -425,6 +464,19 @@ function createEasterEggs() {
             color: '#ff00ff',
             pulse: 0
         };
+        
+        // Create visible 3D marker
+        const geometry = new THREE.SphereGeometry(0.15, 16, 16);
+        const material = new THREE.MeshBasicMaterial({ 
+            color: 0xff00ff,
+            transparent: true,
+            opacity: 0.6
+        });
+        const mesh = new THREE.Mesh(geometry, material);
+        mesh.position.set(egg.position.x, egg.position.y, egg.position.z);
+        AppState.scene.threeScene.add(mesh);
+        eggMarker.mesh = mesh;
+        
         AppState.scene.objects.push(eggMarker);
         AppState.scene.interactiveObjects.push(eggMarker);
     });
@@ -495,17 +547,22 @@ function setupControls() {
 }
 
 function handleClick(event) {
-    const rect = AppState.renderer.canvas.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
+    if (!AppState.camera || !AppState.scene.interactiveObjects) return;
     
-    // Check if click is on any interactive object
+    const rect = AppState.renderer.domElement.getBoundingClientRect();
+    const mouse = new THREE.Vector2();
+    mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+    
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(mouse, AppState.camera);
+    
+    // Check interactions with markers based on distance
     for (const obj of AppState.scene.interactiveObjects) {
-        const dx = x - obj.screenPos.x;
-        const dy = y - obj.screenPos.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
+        const markerPos = new THREE.Vector3(obj.position.x, obj.position.y, obj.position.z);
+        const distance = raycaster.ray.distanceToPoint(markerPos);
         
-        if (distance < obj.size / 2) {
+        if (distance < Config.INTERACTION_DISTANCE) {
             handleObjectInteraction(obj);
             break;
         }
@@ -651,127 +708,11 @@ function updateCamera() {
     AppState.camera.rotation.x = AppState.cameraRotation.x;
 }
 
-function project3DToScreen(pos3D) {
-    // Simple pseudo-3D projection
-    const cam = AppState.camera;
-    
-    // Relative position to camera
-    const relX = pos3D.x - cam.position.x;
-    const relZ = pos3D.z - cam.position.z;
-    
-    // Rotate relative to camera rotation
-    const cosY = Math.cos(-cam.rotation.y);
-    const sinY = Math.sin(-cam.rotation.y);
-    const rotX = relX * cosY - relZ * sinY;
-    const rotZ = relX * sinY + relZ * cosY;
-    
-    // Project to screen
-    if (rotZ < 0.1) return null; // Behind camera
-    
-    const scale = 300 / rotZ;
-    const screenX = AppState.renderer.canvas.width / 2 + rotX * scale;
-    const screenY = AppState.renderer.canvas.height / 2 + (pos3D.y - 1.6) * scale;
-    
-    return { x: screenX, y: screenY, scale: scale };
-}
-
-function drawScene() {
-    const ctx = AppState.renderer.ctx;
-    const canvas = AppState.renderer.canvas;
-    
-    // Clear canvas
-    ctx.fillStyle = '#87ceeb';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    // Draw floor gradient
-    const gradient = ctx.createLinearGradient(0, canvas.height / 2, 0, canvas.height);
-    gradient.addColorStop(0, '#a0a0a0');
-    gradient.addColorStop(1, '#606060');
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, canvas.height / 2, canvas.width, canvas.height / 2);
-    
-    // Draw ceiling
-    const ceilGradient = ctx.createLinearGradient(0, 0, 0, canvas.height / 2);
-    ceilGradient.addColorStop(0, '#ffffff');
-    ceilGradient.addColorStop(1, '#e0e0e0');
-    ctx.fillStyle = ceilGradient;
-    ctx.fillRect(0, 0, canvas.width, canvas.height / 2);
-    
-    // Sort objects by distance (painter's algorithm)
-    const sortedObjects = [...AppState.scene.objects].sort((a, b) => {
-        const distA = Math.sqrt(
-            Math.pow(a.position.x - AppState.camera.position.x, 2) +
-            Math.pow(a.position.z - AppState.camera.position.z, 2)
-        );
-        const distB = Math.sqrt(
-            Math.pow(b.position.x - AppState.camera.position.x, 2) +
-            Math.pow(b.position.z - AppState.camera.position.z, 2)
-        );
-        return distB - distA;
-    });
-    
-    // Draw objects
-    for (const obj of sortedObjects) {
-        const screenPos = project3DToScreen(obj.position);
-        
-        if (screenPos) {
-            obj.screenPos = screenPos;
-            const size = obj.size * screenPos.scale / 10;
-            
-            // Pulse effect for easter eggs
-            let alpha = 1;
-            if (obj.type === 'easter-egg') {
-                obj.pulse = (obj.pulse || 0) + 0.05;
-                alpha = 0.3 + Math.sin(obj.pulse) * 0.2;
-            }
-            
-            // Draw circle
-            ctx.beginPath();
-            ctx.arc(screenPos.x, screenPos.y, size / 2, 0, Math.PI * 2);
-            ctx.fillStyle = obj.color;
-            ctx.globalAlpha = alpha;
-            ctx.fill();
-            
-            // Draw glow
-            ctx.shadowBlur = 20;
-            ctx.shadowColor = obj.color;
-            ctx.fill();
-            ctx.shadowBlur = 0;
-            ctx.globalAlpha = 1;
-            
-            // Draw label if exists and close enough
-            if (obj.label && screenPos.scale > 15) {
-                ctx.fillStyle = '#ffffff';
-                ctx.font = `${Math.min(16, size / 3)}px Arial`;
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'top';
-                ctx.fillText(obj.label, screenPos.x, screenPos.y + size / 2 + 5);
-            }
-        }
-    }
-    
-    // Draw UI hint
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-    ctx.font = '14px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText('Move around and click on glowing markers to interact', canvas.width / 2, canvas.height - 30);
-}
-
-function animate() {
-    if (!AppState.isIn3DScene || !AppState.renderer) return;
-    
-    requestAnimationFrame(animate);
-    
-    updateMovement();
-    updateCamera();
-    drawScene();
-}
-
 function onWindowResize() {
-    if (!AppState.renderer) return;
+    if (!AppState.renderer || !AppState.camera) return;
     
-    const canvas = AppState.renderer.canvas;
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    AppState.camera.aspect = window.innerWidth / window.innerHeight;
+    AppState.camera.updateProjectionMatrix();
+    AppState.renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
