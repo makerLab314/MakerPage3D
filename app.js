@@ -25,7 +25,7 @@ const AppState = {
 
 // Configuration Constants
 const Config = {
-    GAUSSIAN_SPLAT_FILE: 'gs_MakerLAB.ply',
+    GAUSSIAN_SPLAT_FILE: 'https://media.githubusercontent.com/media/makerLab314/MakerPage3D/refs/heads/main/gs_MakerLAB.ply',
     INTERACTION_DISTANCE: 0.5
 };
 
