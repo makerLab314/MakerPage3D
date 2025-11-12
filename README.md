@@ -58,16 +58,11 @@ An immersive 3D virtual tour of MakerLab - a creative space for innovation, 3D p
 
 ### Prerequisites
 - Modern web browser (Chrome, Firefox, Safari, Edge) with WebGL support
-- Node.js (v14 or higher) for running the development server (optional for local development)
+- Node.js (v14 or higher) for running the development server
 
 ### Quick Start (GitHub Pages)
 
-The application is deployed on GitHub Pages and loads all dependencies from CDN:
-```
-https://makerlab314.github.io/MakerPage3D/
-```
-
-No installation is required - just visit the URL in your browser!
+**Note:** GitHub Pages deployment requires additional configuration to set CORS headers for SharedArrayBuffer support. For now, use local development with `npm start`.
 
 ### Local Development
 
@@ -77,7 +72,7 @@ git clone https://github.com/makerLab314/MakerPage3D.git
 cd MakerPage3D
 ```
 
-2. (Optional) Install dependencies locally:
+2. Install dependencies:
 ```bash
 npm install
 ```
@@ -92,19 +87,7 @@ npm start
 http://localhost:8000
 ```
 
-**Note:** The application loads Three.js and Gaussian Splats 3D from CDN (jsdelivr.net) by default, so it works directly from GitHub Pages without requiring `npm install`. The custom server (`server.js`) is recommended for proper Gaussian Splat rendering as it sets the necessary CORS headers (`Cross-Origin-Opener-Policy` and `Cross-Origin-Embedder-Policy`) for SharedArrayBuffer support.
-
-**Alternative servers** (if you don't need Gaussian Splat features):
-
-**Python 3:**
-```bash
-python -m http.server 8000
-```
-
-**PHP:**
-```bash
-php -S localhost:8000
-```
+**Note:** The application requires `npm install` to download Three.js and Gaussian Splats 3D libraries locally. This is necessary because the GaussianSplats3D library uses SharedArrayBuffer in Web Workers, which requires cross-origin isolation (COOP and COEP headers). The custom server (`server.js`) serves all files including node_modules with the necessary CORS headers for proper Gaussian Splat rendering.
 
 ## Usage
 
