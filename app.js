@@ -215,7 +215,7 @@ function startLoading() {
     const loadingVideo = document.getElementById('loading-video');
     
     // Ensure video metadata is loaded
-    if (loadingVideo && loadingVideo.canPlayType('video/mp4') !== '') {
+    if (loadingVideo) {
         loadingVideo.load();
     }
     
@@ -234,10 +234,13 @@ function startLoading() {
         progressText.textContent = `${Math.floor(progress)}%`;
         
         // Sync video playback with progress (0-100%)
-        // Check if video is ready (readyState >= HAVE_METADATA)
-        if (loadingVideo && loadingVideo.readyState >= 1 && !isNaN(loadingVideo.duration)) {
+        // Check if video metadata is loaded (HAVE_METADATA = 1)
+        if (loadingVideo && loadingVideo.readyState >= HTMLMediaElement.HAVE_METADATA && !isNaN(loadingVideo.duration)) {
             const videoTime = (progress / 100) * loadingVideo.duration;
-            loadingVideo.currentTime = videoTime;
+            // Only update if difference is significant to avoid seeking artifacts
+            if (Math.abs(loadingVideo.currentTime - videoTime) > 0.1) {
+                loadingVideo.currentTime = videoTime;
+            }
         }
     }, 200);
 }
