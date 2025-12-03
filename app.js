@@ -10,6 +10,7 @@ const AppState = {
     camera: null,
     scene: null,
     renderer: null,
+    clock: new THREE.Clock(),
     controls: {
         forward: false,
         backward: false,
@@ -18,6 +19,7 @@ const AppState = {
     },
     mouseX: 0,
     mouseY: 0,
+    isDragging: false,
     cameraRotation: { x: 0, y: 0 },
     velocity: { x: 0, y: 0, z: 0 },
     easterEggsFound: []
@@ -25,7 +27,7 @@ const AppState = {
 
 // Configuration Constants
 const Config = {
-    GAUSSIAN_SPLAT_FILE: 'gs_MakerLAB.ply',
+    GAUSSIAN_SPLAT_FILE: './gs_MakerLAB.ply',
     INTERACTION_DISTANCE: 0.5
 };
 
@@ -161,8 +163,21 @@ const EasterEggs = [
     }
 ];
 
+// Debug Logger
+function logToScreen(message) {
+    const logDiv = document.getElementById('debug-log');
+    if (logDiv) {
+        const line = document.createElement('div');
+        line.textContent = `> ${message}`;
+        logDiv.appendChild(line);
+        logDiv.scrollTop = logDiv.scrollHeight;
+    }
+    console.log(message);
+}
+
 // Initialize Application
 document.addEventListener('DOMContentLoaded', () => {
+    logToScreen('App initialized. Waiting for user interaction...');
     initEventListeners();
     hideLoadingScreen();
 });
@@ -208,6 +223,9 @@ function transitionToDoorScene() {
     
     landing.classList.remove('active');
     
+    // Start loading 3D scene early
+    init3DScene();
+    
     setTimeout(() => {
         doorScene.classList.add('active');
         AppState.isInDoorScene = true;
@@ -249,7 +267,7 @@ function transition3DScene() {
     AppState.isIn3DScene = true;
     AppState.currentScene = '3d';
     
-    init3DScene();
+    onWindowResize();
 }
 
 function backToLanding() {
@@ -270,6 +288,8 @@ function backToLanding() {
 }
 
 function init3DScene() {
+    if (AppState.renderer) return; // Already initialized
+
     const container = document.getElementById('three-scene');
     
     // Create Three.js scene
@@ -281,13 +301,21 @@ function init3DScene() {
         1000
     );
     
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    const renderer = new THREE.WebGLRenderer({ 
+        antialias: false, // Disable antialiasing for performance
+        powerPreference: "high-performance",
+        stencil: false,
+        depth: true
+    });
     renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5)); // Lower max pixel ratio
     
     // Replace canvas
     const oldCanvas = document.getElementById('three-canvas');
-    oldCanvas.parentNode.replaceChild(renderer.domElement, oldCanvas);
-    renderer.domElement.id = 'three-canvas';
+    if (oldCanvas && oldCanvas.parentNode) {
+        oldCanvas.parentNode.replaceChild(renderer.domElement, oldCanvas);
+        renderer.domElement.id = 'three-canvas';
+    }
     
     // Initialize scene objects array
     if (!AppState.scene) {
@@ -296,27 +324,102 @@ function init3DScene() {
     AppState.scene.objects = [];
     AppState.scene.interactiveObjects = [];
     
-    // Set initial camera position
-    camera.position.set(0, 1.6, 10);
+    // Set initial camera position - Inside the room
+    camera.position.set(0, 1.6, 0);
     
+    // Debugging: Add visual helpers
+    scene.background = new THREE.Color(0xffffff); // White background to fill holes
+    // const gridHelper = new THREE.GridHelper(20, 20);
+    // scene.add(gridHelper);
+    // const axesHelper = new THREE.AxesHelper(5);
+    // scene.add(axesHelper);
+
     AppState.renderer = renderer;
     AppState.camera = camera;
     AppState.scene.threeScene = scene;
     
+    // Check for Cross-Origin Isolation
+    if (!window.crossOriginIsolated) {
+        console.log('[INFO] Running without SharedArrayBuffer (normal for GitHub Pages). Using fallback mode.');
+    }
+
+    // Safari browser detection
+    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+    if (isSafari) {
+        logToScreen('[INFO] Safari detected - using compatibility mode for PLY parsing.');
+    }
+
+    // Verify file access first
+    logToScreen(`Checking file: ${Config.GAUSSIAN_SPLAT_FILE}`);
+    fetch(Config.GAUSSIAN_SPLAT_FILE)
+        .then(response => {
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            logToScreen(`File found! Size: ${response.headers.get('content-length')} bytes`);
+            return response.blob();
+        })
+        .then(blob => {
+            logToScreen(`Blob created. Size: ${blob.size}`);
+        })
+        .catch(e => {
+            logToScreen(`ERROR: Failed to fetch file: ${e.message}`);
+            alert('Failed to load splat file. Check debug log.');
+        });
+
     // Load Gaussian Splat
     const viewer = new GaussianSplats3D.Viewer({
         scene: scene,
         renderer: renderer,
         camera: camera,
-        useBuiltInControls: false
+        useBuiltInControls: false,
+        sharedMemoryForWorkers: false, // Disable shared memory for GitHub Pages compatibility
+        // Safari/WebKit compatibility
+        progressiveLoad: false,
+        // Prevent streaming issues
+        format: GaussianSplats3D.SceneFormat.Ply,
+        // Load file completely before parsing begins
+        streamView: false
     });
     
-    viewer.addSplatScene(Config.GAUSSIAN_SPLAT_FILE)
+    logToScreen('Starting splat viewer...');
+    viewer.addSplatScene(Config.GAUSSIAN_SPLAT_FILE, {
+        'showLoadingUI': true,
+        'position': [0, 0, 0],
+        'rotation': [0, 0, 1, 0], // Rotate 180 degrees around Z axis to flip upside down
+        'scale': [5, 5, 5],
+        'splatAlphaRemovalThreshold': 20, // Aggressively remove transparent splats
+        'sphericalHarmonicsDegree': 0, // Disable view-dependent color shifts (huge performance boost)
+        // Safari fix: Disable progressive loading
+        'progressiveLoad': false,
+        // Load all data before rendering
+        'streamView': false
+    })
         .then(() => {
-            console.log('Gaussian Splat loaded successfully!');
+            logToScreen('Splat loaded successfully!');
+            
+            // Debug: Inspect viewer for mesh
+            if (viewer.splatMesh) {
+                logToScreen('Found viewer.splatMesh!');
+                if (!scene.children.includes(viewer.splatMesh)) {
+                    scene.add(viewer.splatMesh);
+                    logToScreen('Manually added viewer.splatMesh to scene');
+                }
+            } else if (viewer.splatScene) {
+                logToScreen('Found viewer.splatScene!');
+                 if (!scene.children.includes(viewer.splatScene)) {
+                    scene.add(viewer.splatScene);
+                    logToScreen('Manually added viewer.splatScene to scene');
+                }
+            } else {
+                logToScreen('Could not find splat mesh in viewer properties.');
+                // List viewer properties to find where the mesh is
+                const keys = Object.keys(viewer).filter(k => !k.startsWith('_'));
+                logToScreen(`Viewer keys: ${keys.join(', ')}`);
+            }
+
+            logToScreen(`Scene children count: ${scene.children.length}`);
         })
         .catch((error) => {
-            console.error('Error loading Gaussian Splat:', error);
+            logToScreen(`ERROR loading splat: ${error}`);
         });
     
     // Store viewer reference
@@ -326,16 +429,54 @@ function init3DScene() {
     setupControls();
     createInteractiveMarkers3D();
     
+    startAnimationLoop();
+}
+
+function startAnimationLoop() {
+    let frameCount = 0;
+    let lastTime = performance.now();
+
     // Animation loop
     function animate() {
-        if (!AppState.isIn3DScene) return;
+        if (!AppState.isIn3DScene) {
+            requestAnimationFrame(animate);
+            return;
+        }
         requestAnimationFrame(animate);
         
-        updateMovement();
+        const currentTime = performance.now();
+        const delta = AppState.clock.getDelta();
+
+        // Dynamic Resolution Scaling
+        frameCount++;
+        if (currentTime - lastTime >= 1000) {
+            const fps = frameCount;
+            frameCount = 0;
+            lastTime = currentTime;
+            
+            if (AppState.renderer) {
+                const currentPixelRatio = AppState.renderer.getPixelRatio();
+                // If FPS is low (< 30), reduce resolution
+                if (fps < 30 && currentPixelRatio > 0.5) {
+                    const newRatio = Math.max(0.5, currentPixelRatio * 0.8);
+                    AppState.renderer.setPixelRatio(newRatio);
+                    // console.log(`Low FPS (${fps}), reducing resolution to ${newRatio.toFixed(2)}`);
+                } 
+                // If FPS is good (> 55), try to increase resolution up to limit
+                else if (fps > 55 && currentPixelRatio < 1.5 && currentPixelRatio < window.devicePixelRatio) {
+                    const newRatio = Math.min(Math.min(window.devicePixelRatio, 1.5), currentPixelRatio * 1.1);
+                    AppState.renderer.setPixelRatio(newRatio);
+                }
+            }
+        }
+        
+        updateMovement(delta);
         updateCamera();
         
-        viewer.update();
-        renderer.render(scene, camera);
+        if (AppState.viewer) AppState.viewer.update();
+        if (AppState.renderer && AppState.scene.threeScene && AppState.camera) {
+            AppState.renderer.render(AppState.scene.threeScene, AppState.camera);
+        }
     }
     
     animate();
@@ -364,6 +505,11 @@ function createInteractiveMarkers3D() {
         });
         const mesh = new THREE.Mesh(geometry, material);
         mesh.position.set(equipment.position.x, equipment.position.y, equipment.position.z);
+        
+        // Optimization: Static object
+        mesh.matrixAutoUpdate = false;
+        mesh.updateMatrix();
+        
         AppState.scene.threeScene.add(mesh);
         marker.mesh = mesh;
         
@@ -400,6 +546,11 @@ function createInteractiveObjects() {
     });
     const projectMesh = new THREE.Mesh(projectGeo, projectMat);
     projectMesh.position.set(projectMarker.position.x, projectMarker.position.y, projectMarker.position.z);
+    
+    // Optimization
+    projectMesh.matrixAutoUpdate = false;
+    projectMesh.updateMatrix();
+
     AppState.scene.threeScene.add(projectMesh);
     projectMarker.mesh = projectMesh;
     
@@ -424,6 +575,11 @@ function createInteractiveObjects() {
     });
     const newsMesh = new THREE.Mesh(newsGeo, newsMat);
     newsMesh.position.set(newsMarker.position.x, newsMarker.position.y, newsMarker.position.z);
+    
+    // Optimization
+    newsMesh.matrixAutoUpdate = false;
+    newsMesh.updateMatrix();
+
     AppState.scene.threeScene.add(newsMesh);
     newsMarker.mesh = newsMesh;
     
@@ -448,6 +604,11 @@ function createInteractiveObjects() {
     });
     const memberMesh = new THREE.Mesh(memberGeo, memberMat);
     memberMesh.position.set(memberDisplay.position.x, memberDisplay.position.y, memberDisplay.position.z);
+    
+    // Optimization
+    memberMesh.matrixAutoUpdate = false;
+    memberMesh.updateMatrix();
+
     AppState.scene.threeScene.add(memberMesh);
     memberDisplay.mesh = memberMesh;
     
@@ -478,6 +639,11 @@ function createEasterEggs() {
         });
         const mesh = new THREE.Mesh(geometry, material);
         mesh.position.set(egg.position.x, egg.position.y, egg.position.z);
+        
+        // Optimization
+        mesh.matrixAutoUpdate = false;
+        mesh.updateMatrix();
+
         AppState.scene.threeScene.add(mesh);
         eggMarker.mesh = mesh;
         
@@ -535,11 +701,21 @@ function setupControls() {
     });
     
     // Mouse controls for looking around
+    document.addEventListener('mousedown', () => { AppState.isDragging = true; });
+    document.addEventListener('mouseup', () => { AppState.isDragging = false; });
+    document.addEventListener('mouseleave', () => { AppState.isDragging = false; });
+
     document.addEventListener('mousemove', (e) => {
-        if (!AppState.isIn3DScene) return;
+        if (!AppState.isIn3DScene || !AppState.isDragging) return;
         
-        AppState.mouseX = (e.clientX / window.innerWidth) * 2 - 1;
-        AppState.mouseY = -(e.clientY / window.innerHeight) * 2 + 1;
+        // Sensitivity factor
+        const sensitivity = 0.002;
+        
+        AppState.cameraRotation.y += e.movementX * sensitivity;
+        AppState.cameraRotation.x += e.movementY * sensitivity;
+        
+        // Clamp vertical rotation to avoid flipping
+        AppState.cameraRotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, AppState.cameraRotation.x));
     });
     
     // Click interaction
@@ -552,6 +728,12 @@ function setupControls() {
 
 function handleClick(event) {
     if (!AppState.camera || !AppState.scene.interactiveObjects) return;
+    
+    // If we were dragging, don't register as a click
+    // Simple check: if mouse moved significantly between down and up, it's a drag.
+    // For now, we rely on the fact that click fires after mouseup.
+    // If isDragging is false, it might have been a drag that just ended.
+    // Ideally we track drag distance.
     
     const rect = AppState.renderer.domElement.getBoundingClientRect();
     const mouse = new THREE.Vector2();
@@ -671,28 +853,26 @@ function formatDate(dateStr) {
     return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 }
 
-function updateMovement() {
-    const speed = 0.1;
-    const direction = {
-        x: Math.sin(AppState.camera.rotation.y),
-        z: Math.cos(AppState.camera.rotation.y)
-    };
+function updateMovement(delta) {
+    const speed = 5.0 * delta; // Adjusted speed for delta time
+    const sinRotation = Math.sin(AppState.camera.rotation.y);
+    const cosRotation = Math.cos(AppState.camera.rotation.y);
     
     if (AppState.controls.forward) {
-        AppState.camera.position.x += direction.x * speed;
-        AppState.camera.position.z -= direction.z * speed;
+        AppState.camera.position.x += sinRotation * speed;
+        AppState.camera.position.z -= cosRotation * speed;
     }
     if (AppState.controls.backward) {
-        AppState.camera.position.x -= direction.x * speed;
-        AppState.camera.position.z += direction.z * speed;
+        AppState.camera.position.x -= sinRotation * speed;
+        AppState.camera.position.z += cosRotation * speed;
     }
     if (AppState.controls.left) {
-        AppState.camera.position.x -= direction.z * speed;
-        AppState.camera.position.z -= direction.x * speed;
+        AppState.camera.position.x -= cosRotation * speed;
+        AppState.camera.position.z -= sinRotation * speed;
     }
     if (AppState.controls.right) {
-        AppState.camera.position.x += direction.z * speed;
-        AppState.camera.position.z += direction.x * speed;
+        AppState.camera.position.x += cosRotation * speed;
+        AppState.camera.position.z += sinRotation * speed;
     }
     
     // Boundary limits
@@ -701,13 +881,7 @@ function updateMovement() {
 }
 
 function updateCamera() {
-    // Smooth camera rotation based on mouse
-    const targetRotationY = AppState.mouseX * Math.PI * 0.5;
-    const targetRotationX = AppState.mouseY * Math.PI * 0.3;
-    
-    AppState.cameraRotation.y += (targetRotationY - AppState.cameraRotation.y) * 0.05;
-    AppState.cameraRotation.x += (targetRotationX - AppState.cameraRotation.x) * 0.05;
-    
+    // Apply rotation directly from state
     AppState.camera.rotation.y = AppState.cameraRotation.y;
     AppState.camera.rotation.x = AppState.cameraRotation.x;
 }

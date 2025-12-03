@@ -11,7 +11,7 @@
         "imports": {
             "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
             "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
-            "@mkkellogg/gaussian-splats-3d": "./lib/gaussian-splats-3d.module.js"
+            "@mkkellogg/gaussian-splats-3d": "https://cdn.jsdelivr.net/npm/@mkkellogg/gaussian-splats-3d@0.4.6/build/gaussian-splats-3d.module.js"
         }
     }
     </script>
@@ -40,8 +40,8 @@
     <!-- Door Entry Scene -->
     <div id="door-scene" class="scene">
         <!-- Video element for door opening -->
-        <video id="door-video" class="door-video" playsinline muted>
-            <source src="20251103_113926 (1).mp4" type="video/mp4">
+        <video id="door-video" class="door-video" playsinline muted preload="auto">
+            <source src="door_transition.mp4" type="video/mp4">
             Your browser does not support the video tag.
         </video>
     </div>
@@ -106,6 +106,7 @@
     <div id="loading-screen">
         <div class="loader"></div>
         <p>Loading MakerLab Experience...</p>
+        <div id="debug-log" style="display: none;"></div>
     </div>
 
     <script type="module" src="app.js"></script>
