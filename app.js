@@ -5,7 +5,6 @@ import * as GaussianSplats3D from '@mkkellogg/gaussian-splats-3d';
 // Application State
 const AppState = {
     currentScene: 'landing',
-    isInDoorScene: false,
     isIn3DScene: false,
     camera: null,
     scene: null,
@@ -215,14 +214,9 @@ function startLoading() {
     const progressText = document.getElementById('progress-text');
     const loadingVideo = document.getElementById('loading-video');
     
-    // Ensure video metadata is loaded before syncing
+    // Ensure video metadata is loaded
     if (loadingVideo && loadingVideo.canPlayType('video/mp4')) {
         loadingVideo.load();
-        
-        // Wait for metadata to be loaded
-        loadingVideo.addEventListener('loadedmetadata', () => {
-            console.log('Video duration:', loadingVideo.duration);
-        });
     }
     
     const loadingInterval = setInterval(() => {
@@ -240,7 +234,8 @@ function startLoading() {
         progressText.textContent = `${Math.floor(progress)}%`;
         
         // Sync video playback with progress (0-100%)
-        if (loadingVideo && loadingVideo.duration && !isNaN(loadingVideo.duration)) {
+        // Check if video is ready (readyState >= HAVE_METADATA)
+        if (loadingVideo && loadingVideo.readyState >= 1 && !isNaN(loadingVideo.duration)) {
             const videoTime = (progress / 100) * loadingVideo.duration;
             loadingVideo.currentTime = videoTime;
         }
