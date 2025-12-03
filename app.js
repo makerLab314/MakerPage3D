@@ -215,7 +215,7 @@ function startLoading() {
     const loadingVideo = document.getElementById('loading-video');
     
     // Ensure video metadata is loaded
-    if (loadingVideo && loadingVideo.canPlayType('video/mp4')) {
+    if (loadingVideo && loadingVideo.canPlayType('video/mp4') !== '') {
         loadingVideo.load();
     }
     
