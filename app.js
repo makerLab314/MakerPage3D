@@ -28,7 +28,8 @@ const AppState = {
     currentLockedObject: null,
     loadingProgress: 0,
     zoomAnimationProgress: 0,
-    isZoomingIn: false
+    isZoomingIn: false,
+    dragStartX: 0
 };
 
 // Configuration Constants
@@ -1080,7 +1081,8 @@ function updateMovement(delta) {
 function updateCamera() {
     // Handle zoom-in animation
     if (AppState.isZoomingIn) {
-        AppState.zoomAnimationProgress += 16.67 / Config.ZOOM_ANIMATION_DURATION; // Assuming ~60fps
+        const deltaTime = AppState.clock.getDelta();
+        AppState.zoomAnimationProgress += deltaTime / (Config.ZOOM_ANIMATION_DURATION / 1000);
         
         if (AppState.zoomAnimationProgress >= 1) {
             AppState.isZoomingIn = false;
