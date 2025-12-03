@@ -340,9 +340,7 @@ function init3DScene() {
     
     // Check for Cross-Origin Isolation
     if (!window.crossOriginIsolated) {
-        const warning = '⚠️ SharedArrayBuffer is not enabled. The 3D scene might not load correctly. Please ensure you are running the server with correct headers (npm start).';
-        console.warn(warning);
-        alert(warning);
+        console.log('[INFO] Running without SharedArrayBuffer (normal for GitHub Pages). Using fallback mode.');
     }
 
     // Verify file access first
@@ -366,8 +364,8 @@ function init3DScene() {
         scene: scene,
         renderer: renderer,
         camera: camera,
-        useBuiltInControls: false
-        // sharedMemoryForWorkers: false // Re-enabled shared memory
+        useBuiltInControls: false,
+        sharedMemoryForWorkers: false // Disable shared memory for GitHub Pages compatibility
     });
     
     logToScreen('Starting splat viewer...');

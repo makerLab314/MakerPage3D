@@ -92,7 +92,11 @@ npm start
 http://localhost:8000
 ```
 
-**Note:** The application loads Three.js and Gaussian Splats 3D from CDN (jsdelivr.net) by default, so it works directly from GitHub Pages without requiring `npm install`. The custom server (`server.js`) is recommended for proper Gaussian Splat rendering as it sets the necessary CORS headers (`Cross-Origin-Opener-Policy` and `Cross-Origin-Embedder-Policy`) for SharedArrayBuffer support.
+**Note:** The application loads Three.js and Gaussian Splats 3D from CDN (jsdelivr.net) by default, so it works directly from GitHub Pages without requiring `npm install`. The application automatically detects the environment and uses the appropriate rendering mode:
+- **GitHub Pages**: Runs without SharedArrayBuffer (fallback mode) - works out of the box
+- **Local server with CORS headers**: Uses SharedArrayBuffer for improved multi-threaded performance
+
+The custom server (`server.js`) sets CORS headers (`Cross-Origin-Opener-Policy` and `Cross-Origin-Embedder-Policy`) for SharedArrayBuffer support, but the application works fine without it.
 
 **Alternative servers** (if you don't need Gaussian Splat features):
 
