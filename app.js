@@ -340,7 +340,7 @@ function init3DScene() {
     
     // Check for Cross-Origin Isolation
     if (!window.crossOriginIsolated) {
-        console.log('ℹ️ Running without SharedArrayBuffer (normal for GitHub Pages). Using fallback mode.');
+        console.log('[INFO] Running without SharedArrayBuffer (normal for GitHub Pages). Using fallback mode.');
     }
 
     // Verify file access first
