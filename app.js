@@ -343,6 +343,12 @@ function init3DScene() {
         console.log('[INFO] Running without SharedArrayBuffer (normal for GitHub Pages). Using fallback mode.');
     }
 
+    // Safari browser detection
+    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+    if (isSafari) {
+        logToScreen('[INFO] Safari detected - using compatibility mode for PLY parsing.');
+    }
+
     // Verify file access first
     logToScreen(`Checking file: ${Config.GAUSSIAN_SPLAT_FILE}`);
     fetch(Config.GAUSSIAN_SPLAT_FILE)
@@ -365,7 +371,13 @@ function init3DScene() {
         renderer: renderer,
         camera: camera,
         useBuiltInControls: false,
-        sharedMemoryForWorkers: false // Disable shared memory for GitHub Pages compatibility
+        sharedMemoryForWorkers: false, // Disable shared memory for GitHub Pages compatibility
+        // Safari/WebKit Kompatibilität
+        progressiveLoad: false,
+        // Verhindere Streaming-Probleme
+        format: GaussianSplats3D.SceneFormat.Ply,
+        // Lade die Datei komplett bevor Parsing beginnt
+        streamView: false
     });
     
     logToScreen('Starting splat viewer...');
@@ -375,7 +387,11 @@ function init3DScene() {
         'rotation': [0, 0, 1, 0], // Rotate 180 degrees around Z axis to flip upside down
         'scale': [5, 5, 5],
         'splatAlphaRemovalThreshold': 20, // Aggressively remove transparent splats
-        'sphericalHarmonicsDegree': 0 // Disable view-dependent color shifts (huge performance boost)
+        'sphericalHarmonicsDegree': 0, // Disable view-dependent color shifts (huge performance boost)
+        // Safari-Fix: Deaktiviere progressives Laden
+        'progressiveLoad': false,
+        // Lade alle Daten vor dem Rendern
+        'streamView': false
     })
         .then(() => {
             logToScreen('Splat loaded successfully!');
