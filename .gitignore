@@ -20,3 +20,4 @@ Thumbs.db
 node_modules/
 package-lock.json
 test-ui.html
+IMPLEMENTATION_SUMMARY.md
