@@ -218,7 +218,7 @@ function startLoading() {
     if (loadingVideo) {
         loadingVideo.load();
         loadingVideo.play().catch(err => {
-            console.log('Video autoplay prevented:', err);
+            console.log('Video autoplay prevented by browser policy:', err);
         });
     }
     
