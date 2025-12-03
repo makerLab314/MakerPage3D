@@ -27,7 +27,7 @@ const AppState = {
 
 // Configuration Constants
 const Config = {
-    GAUSSIAN_SPLAT_FILE: './makerLAB.ksplat',
+    GAUSSIAN_SPLAT_FILE: './makerLab.ksplat',
     INTERACTION_DISTANCE: 0.5
 };
 
