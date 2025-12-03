@@ -372,11 +372,11 @@ function init3DScene() {
         camera: camera,
         useBuiltInControls: false,
         sharedMemoryForWorkers: false, // Disable shared memory for GitHub Pages compatibility
-        // Safari/WebKit Kompatibilität
+        // Safari/WebKit compatibility
         progressiveLoad: false,
-        // Verhindere Streaming-Probleme
+        // Prevent streaming issues
         format: GaussianSplats3D.SceneFormat.Ply,
-        // Lade die Datei komplett bevor Parsing beginnt
+        // Load file completely before parsing begins
         streamView: false
     });
     
@@ -388,9 +388,9 @@ function init3DScene() {
         'scale': [5, 5, 5],
         'splatAlphaRemovalThreshold': 20, // Aggressively remove transparent splats
         'sphericalHarmonicsDegree': 0, // Disable view-dependent color shifts (huge performance boost)
-        // Safari-Fix: Deaktiviere progressives Laden
+        // Safari fix: Disable progressive loading
         'progressiveLoad': false,
-        // Lade alle Daten vor dem Rendern
+        // Load all data before rendering
         'streamView': false
     })
         .then(() => {
