@@ -27,8 +27,6 @@ const AppState = {
     isLockedAtObject: false,
     currentLockedObject: null,
     loadingProgress: 0,
-    zoomAnimationProgress: 0,
-    isZoomingIn: false,
     dragStartX: 0
 };
 
@@ -36,7 +34,6 @@ const AppState = {
 const Config = {
     GAUSSIAN_SPLAT_FILE: './makerLab.ksplat',
     INTERACTION_DISTANCE: 0.5,
-    ZOOM_ANIMATION_DURATION: 3000, // 3 seconds
     FLY_TO_OBJECT_DURATION: 1500, // 1.5 seconds
     OBJECT_VIEW_DISTANCE: 2.0 // Distance from object when viewing
 };
@@ -216,6 +213,17 @@ function startLoading() {
     let progress = 0;
     const progressBar = document.getElementById('progress-bar');
     const progressText = document.getElementById('progress-text');
+    const loadingVideo = document.getElementById('loading-video');
+    
+    // Ensure video metadata is loaded before syncing
+    if (loadingVideo && loadingVideo.canPlayType('video/mp4')) {
+        loadingVideo.load();
+        
+        // Wait for metadata to be loaded
+        loadingVideo.addEventListener('loadedmetadata', () => {
+            console.log('Video duration:', loadingVideo.duration);
+        });
+    }
     
     const loadingInterval = setInterval(() => {
         progress += Math.random() * 10;
@@ -230,6 +238,12 @@ function startLoading() {
         AppState.loadingProgress = progress;
         progressBar.style.width = `${progress}%`;
         progressText.textContent = `${Math.floor(progress)}%`;
+        
+        // Sync video playback with progress (0-100%)
+        if (loadingVideo && loadingVideo.duration && !isNaN(loadingVideo.duration)) {
+            const videoTime = (progress / 100) * loadingVideo.duration;
+            loadingVideo.currentTime = videoTime;
+        }
     }, 200);
 }
 
@@ -271,59 +285,21 @@ function initEventListeners() {
 
 function transitionToDoorScene() {
     const landing = document.getElementById('landing-page');
-    const doorScene = document.getElementById('door-scene');
+    const threeScene = document.getElementById('three-scene');
     
     landing.classList.remove('active');
     
     // Start loading 3D scene early
     init3DScene();
     
+    // Skip door scene, go directly to 3D scene
     setTimeout(() => {
-        doorScene.classList.add('active');
-        AppState.isInDoorScene = true;
-        AppState.currentScene = 'door';
+        threeScene.classList.add('active');
+        AppState.isIn3DScene = true;
+        AppState.currentScene = '3d';
         
-        // Play video immediately
-        playVideo();
+        onWindowResize();
     }, 500);
-}
-
-function playVideo() {
-    const video = document.getElementById('door-video');
-    
-    // Play video in fullscreen
-    if (video && video.canPlayType('video/mp4')) {
-        video.classList.add('playing');
-        video.play();
-        
-        // Transition when video ends
-        video.onended = () => {
-            transition3DScene();
-        };
-    } else {
-        // Fallback - go directly to 3D scene if video can't play
-        setTimeout(() => {
-            transition3DScene();
-        }, 1000);
-    }
-}
-
-function transition3DScene() {
-    const doorScene = document.getElementById('door-scene');
-    const threeScene = document.getElementById('three-scene');
-    
-    doorScene.classList.remove('active');
-    threeScene.classList.add('active');
-    
-    AppState.isInDoorScene = false;
-    AppState.isIn3DScene = true;
-    AppState.currentScene = '3d';
-    
-    // Start zoom-in animation
-    AppState.isZoomingIn = true;
-    AppState.zoomAnimationProgress = 0;
-    
-    onWindowResize();
 }
 
 function backToLanding() {
@@ -380,13 +356,9 @@ function init3DScene() {
     AppState.scene.objects = [];
     AppState.scene.interactiveObjects = [];
     
-    // Set initial camera position - Far away for zoom-in animation
-    camera.position.set(0, 1.6, -20);
+    // Set initial camera position - Start at center
+    camera.position.set(0, 1.6, 0);
     camera.rotation.y = 0;
-    
-    // Store initial and target positions for zoom animation
-    AppState.initialCameraPos = { x: 0, y: 1.6, z: -20 };
-    AppState.targetCameraPos = { x: 0, y: 1.6, z: 0 };
     
     // Debugging: Add visual helpers
     scene.background = new THREE.Color(0xffffff); // White background to fill holes
@@ -1079,23 +1051,6 @@ function updateMovement(delta) {
 }
 
 function updateCamera() {
-    // Handle zoom-in animation
-    if (AppState.isZoomingIn) {
-        const deltaTime = AppState.clock.getDelta();
-        AppState.zoomAnimationProgress += deltaTime / (Config.ZOOM_ANIMATION_DURATION / 1000);
-        
-        if (AppState.zoomAnimationProgress >= 1) {
-            AppState.isZoomingIn = false;
-            AppState.zoomAnimationProgress = 1;
-        }
-        
-        // Smooth easing
-        const eased = 1 - Math.pow(1 - AppState.zoomAnimationProgress, 3);
-        
-        AppState.camera.position.z = AppState.initialCameraPos.z + 
-            (AppState.targetCameraPos.z - AppState.initialCameraPos.z) * eased;
-    }
-    
     // Don't update rotation if locked at object
     if (!AppState.isLockedAtObject) {
         // Apply rotation directly from state - HORIZONTAL ONLY
