@@ -214,9 +214,12 @@ function startLoading() {
     const progressText = document.getElementById('progress-text');
     const loadingVideo = document.getElementById('loading-video');
     
-    // Ensure video metadata is loaded
+    // Start video playback at normal speed
     if (loadingVideo) {
         loadingVideo.load();
+        loadingVideo.play().catch(err => {
+            console.log('Video autoplay prevented:', err);
+        });
     }
     
     const loadingInterval = setInterval(() => {
@@ -232,20 +235,18 @@ function startLoading() {
         AppState.loadingProgress = progress;
         progressBar.style.width = `${progress}%`;
         progressText.textContent = `${Math.floor(progress)}%`;
-        
-        // Sync video playback with progress (0-100%)
-        // Check if video metadata is loaded (HAVE_METADATA = 1)
-        if (loadingVideo && loadingVideo.readyState >= HTMLMediaElement.HAVE_METADATA && !isNaN(loadingVideo.duration)) {
-            const videoTime = (progress / 100) * loadingVideo.duration;
-            // Only update if difference is significant to avoid seeking artifacts
-            if (Math.abs(loadingVideo.currentTime - videoTime) > 0.1) {
-                loadingVideo.currentTime = videoTime;
-            }
-        }
     }, 200);
 }
 
 function hideLoadingScreen() {
+    const loadingVideo = document.getElementById('loading-video');
+    
+    // Stop and reset the video
+    if (loadingVideo) {
+        loadingVideo.pause();
+        loadingVideo.currentTime = 0;
+    }
+    
     setTimeout(() => {
         document.getElementById('loading-screen').classList.add('hidden');
     }, 500);
@@ -354,9 +355,9 @@ function init3DScene() {
     AppState.scene.objects = [];
     AppState.scene.interactiveObjects = [];
     
-    // Set initial camera position - Start at center
+    // Set initial camera position - Start at center facing into the lab
     camera.position.set(0, 1.6, 0);
-    camera.rotation.y = 0;
+    camera.rotation.y = Math.PI; // Face towards negative Z direction (into the lab)
     
     // Debugging: Add visual helpers
     scene.background = new THREE.Color(0xffffff); // White background to fill holes
