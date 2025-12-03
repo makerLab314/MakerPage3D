@@ -54,17 +54,36 @@
         <div class="ui-overlay">
             <button id="back-btn" class="nav-button">← Back</button>
             <div class="controls-hint">
-                <p>Use WASD or Arrow Keys to move | Mouse to look around | Click on objects to interact</p>
+                <p>Use WASD or Arrow Keys to move | Mouse drag to look around | Click on objects to interact</p>
+            </div>
+            
+            <!-- WASD Indicator -->
+            <div id="wasd-indicator" class="wasd-indicator">
+                <div class="wasd-grid">
+                    <div class="wasd-spacer"></div>
+                    <div class="wasd-key" data-key="w">W</div>
+                    <div class="wasd-spacer"></div>
+                    <div class="wasd-key" data-key="a">A</div>
+                    <div class="wasd-key" data-key="s">S</div>
+                    <div class="wasd-key" data-key="d">D</div>
+                </div>
             </div>
         </div>
 
-        <!-- Info Panel (for equipment details) -->
-        <div id="info-panel" class="glass-panel hidden">
-            <button class="close-btn" id="close-info">×</button>
-            <div id="panel-content">
-                <h2 id="panel-title"></h2>
-                <div id="panel-description"></div>
-                <div id="panel-specs"></div>
+        <!-- Floating HUD (for equipment details) -->
+        <div id="floating-hud" class="floating-hud hidden">
+            <div class="hud-header">
+                <span class="hud-icon" id="hud-icon"></span>
+                <h3 id="hud-title"></h3>
+                <button class="hud-close" id="close-hud">×</button>
+            </div>
+            <div class="hud-body">
+                <div class="hud-scanline"></div>
+                <p class="hud-description" id="hud-description"></p>
+                <div class="hud-specs" id="hud-specs"></div>
+            </div>
+            <div class="hud-footer">
+                <span class="hud-status">● ACTIVE</span>
             </div>
         </div>
 
@@ -104,8 +123,40 @@
 
     <!-- Loading Screen -->
     <div id="loading-screen">
-        <div class="loader"></div>
-        <p>Loading MakerLab Experience...</p>
+        <!-- Warp Effect Container -->
+        <div class="warp-container">
+            <!-- Video in center -->
+            <video id="loading-video" class="loading-video" playsinline muted loop autoplay preload="auto">
+                <source src="door_transition.mp4" type="video/mp4">
+            </video>
+            
+            <!-- Warp rings -->
+            <div class="warp-ring warp-ring-1"></div>
+            <div class="warp-ring warp-ring-2"></div>
+            <div class="warp-ring warp-ring-3"></div>
+            <div class="warp-ring warp-ring-4"></div>
+            <div class="warp-ring warp-ring-5"></div>
+        </div>
+        
+        <!-- Loading Info -->
+        <div class="loading-info">
+            <h2>Initializing MakerLab...</h2>
+            <div class="progress-container">
+                <div class="progress-bar" id="progress-bar"></div>
+                <span class="progress-text" id="progress-text">0%</span>
+            </div>
+            
+            <!-- Mobile Warning -->
+            <div class="mobile-warning" id="mobile-warning">
+                <span class="warning-icon">⚠️</span>
+                <p>Mobile device detected. Loading may consume data. Continue?</p>
+                <div class="warning-buttons">
+                    <button id="continue-btn" class="warning-button primary">Continue</button>
+                    <button id="cancel-btn" class="warning-button">Cancel</button>
+                </div>
+            </div>
+        </div>
+        
         <div id="debug-log" style="display: none;"></div>
     </div>
 

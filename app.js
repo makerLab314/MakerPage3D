@@ -22,13 +22,22 @@ const AppState = {
     isDragging: false,
     cameraRotation: { x: 0, y: 0 },
     velocity: { x: 0, y: 0, z: 0 },
-    easterEggsFound: []
+    easterEggsFound: [],
+    isAnimatingToObject: false,
+    isLockedAtObject: false,
+    currentLockedObject: null,
+    loadingProgress: 0,
+    zoomAnimationProgress: 0,
+    isZoomingIn: false
 };
 
 // Configuration Constants
 const Config = {
     GAUSSIAN_SPLAT_FILE: './makerLab.ksplat',
-    INTERACTION_DISTANCE: 0.5
+    INTERACTION_DISTANCE: 0.5,
+    ZOOM_ANIMATION_DURATION: 3000, // 3 seconds
+    FLY_TO_OBJECT_DURATION: 1500, // 1.5 seconds
+    OBJECT_VIEW_DISTANCE: 2.0 // Distance from object when viewing
 };
 
 // Data for the application
@@ -179,8 +188,55 @@ function logToScreen(message) {
 document.addEventListener('DOMContentLoaded', () => {
     logToScreen('App initialized. Waiting for user interaction...');
     initEventListeners();
-    hideLoadingScreen();
+    checkMobileAndShowWarning();
 });
+
+function checkMobileAndShowWarning() {
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
+    if (isMobile) {
+        document.getElementById('mobile-warning').classList.add('show');
+        
+        document.getElementById('continue-btn').addEventListener('click', () => {
+            document.getElementById('mobile-warning').classList.remove('show');
+            startLoading();
+        });
+        
+        document.getElementById('cancel-btn').addEventListener('click', () => {
+            window.location.href = 'about:blank';
+        });
+    } else {
+        startLoading();
+    }
+}
+
+function startLoading() {
+    // Simulate loading progress
+    let progress = 0;
+    const progressBar = document.getElementById('progress-bar');
+    const progressText = document.getElementById('progress-text');
+    
+    const loadingInterval = setInterval(() => {
+        progress += Math.random() * 10;
+        if (progress >= 100) {
+            progress = 100;
+            clearInterval(loadingInterval);
+            setTimeout(() => {
+                hideLoadingScreen();
+            }, 500);
+        }
+        
+        AppState.loadingProgress = progress;
+        progressBar.style.width = `${progress}%`;
+        progressText.textContent = `${Math.floor(progress)}%`;
+    }, 200);
+}
+
+function hideLoadingScreen() {
+    setTimeout(() => {
+        document.getElementById('loading-screen').classList.add('hidden');
+    }, 500);
+}
 
 function initEventListeners() {
     // Landing page
@@ -190,9 +246,10 @@ function initEventListeners() {
     document.getElementById('back-btn').addEventListener('click', backToLanding);
     
     // Close buttons
-    document.getElementById('close-info').addEventListener('click', () => {
-        document.getElementById('info-panel').classList.add('hidden');
-    });
+    const closeHud = document.getElementById('close-hud');
+    if (closeHud) {
+        closeHud.addEventListener('click', closeFloatingHUD);
+    }
     
     document.getElementById('close-projects').addEventListener('click', () => {
         document.getElementById('projects-view').classList.add('hidden');
@@ -214,7 +271,7 @@ function initEventListeners() {
 function hideLoadingScreen() {
     setTimeout(() => {
         document.getElementById('loading-screen').classList.add('hidden');
-    }, 1000);
+    }, 500);
 }
 
 function transitionToDoorScene() {
@@ -266,6 +323,10 @@ function transition3DScene() {
     AppState.isInDoorScene = false;
     AppState.isIn3DScene = true;
     AppState.currentScene = '3d';
+    
+    // Start zoom-in animation
+    AppState.isZoomingIn = true;
+    AppState.zoomAnimationProgress = 0;
     
     onWindowResize();
 }
@@ -324,8 +385,13 @@ function init3DScene() {
     AppState.scene.objects = [];
     AppState.scene.interactiveObjects = [];
     
-    // Set initial camera position - Inside the room
-    camera.position.set(0, 1.6, 0);
+    // Set initial camera position - Far away for zoom-in animation
+    camera.position.set(0, 1.6, -20);
+    camera.rotation.y = 0;
+    
+    // Store initial and target positions for zoom animation
+    AppState.initialCameraPos = { x: 0, y: 1.6, z: -20 };
+    AppState.targetCameraPos = { x: 0, y: 1.6, z: 0 };
     
     // Debugging: Add visual helpers
     scene.background = new THREE.Color(0xffffff); // White background to fill holes
@@ -470,6 +536,9 @@ function startAnimationLoop() {
         updateMovement(delta);
         updateCamera();
         
+        // Animate marker rings
+        animateMarkers(currentTime);
+        
         if (AppState.viewer) AppState.viewer.update();
         if (AppState.renderer && AppState.scene.threeScene && AppState.camera) {
             AppState.renderer.render(AppState.scene.threeScene, AppState.camera);
@@ -477,6 +546,22 @@ function startAnimationLoop() {
     }
     
     animate();
+}
+
+function animateMarkers(time) {
+    if (!AppState.scene.objects) return;
+    
+    // Animate marker rings
+    AppState.scene.objects.forEach(obj => {
+        if (obj.ring) {
+            // Rotate the ring slowly
+            obj.ring.rotation.z = (time * 0.001) % (Math.PI * 2);
+            
+            // Pulse scale
+            const scale = 1 + Math.sin(time * 0.003) * 0.1;
+            obj.ring.scale.set(scale, scale, 1);
+        }
+    });
 }
 
 function createInteractiveMarkers3D() {
@@ -493,22 +578,36 @@ function createInteractiveMarkers3D() {
             color: '#00d4ff'
         };
         
-        // Create visible 3D marker sphere
-        const geometry = new THREE.SphereGeometry(0.2, 16, 16);
-        const material = new THREE.MeshBasicMaterial({ 
+        // Create a neon-style marker with outer ring
+        const markerGroup = new THREE.Group();
+        
+        // Inner glowing sphere
+        const innerGeo = new THREE.SphereGeometry(0.15, 16, 16);
+        const innerMat = new THREE.MeshBasicMaterial({ 
             color: 0x00d4ff,
             transparent: true,
-            opacity: 0.8
+            opacity: 0.9
         });
-        const mesh = new THREE.Mesh(geometry, material);
-        mesh.position.set(equipment.position.x, equipment.position.y, equipment.position.z);
+        const innerSphere = new THREE.Mesh(innerGeo, innerMat);
+        markerGroup.add(innerSphere);
         
-        // Optimization: Static object
-        mesh.matrixAutoUpdate = false;
-        mesh.updateMatrix();
+        // Outer ring
+        const ringGeo = new THREE.RingGeometry(0.2, 0.25, 32);
+        const ringMat = new THREE.MeshBasicMaterial({ 
+            color: 0x00d4ff,
+            transparent: true,
+            opacity: 0.6,
+            side: THREE.DoubleSide
+        });
+        const ring = new THREE.Mesh(ringGeo, ringMat);
+        ring.rotation.x = Math.PI / 2;
+        markerGroup.add(ring);
         
-        AppState.scene.threeScene.add(mesh);
-        marker.mesh = mesh;
+        markerGroup.position.set(equipment.position.x, equipment.position.y, equipment.position.z);
+        
+        AppState.scene.threeScene.add(markerGroup);
+        marker.mesh = markerGroup;
+        marker.ring = ring; // Store ring for animation
         
         AppState.scene.objects.push(marker);
         AppState.scene.interactiveObjects.push(marker);
@@ -654,22 +753,34 @@ function setupControls() {
     document.addEventListener('keydown', (e) => {
         if (!AppState.isIn3DScene) return;
         
+        // Check if locked at object - trying to move exits
+        if (AppState.isLockedAtObject) {
+            if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(e.key.toLowerCase())) {
+                exitObjectView();
+            }
+            return;
+        }
+        
         switch(e.key.toLowerCase()) {
             case 'w':
             case 'arrowup':
                 AppState.controls.forward = true;
+                updateWASDIndicator('w', true);
                 break;
             case 's':
             case 'arrowdown':
                 AppState.controls.backward = true;
+                updateWASDIndicator('s', true);
                 break;
             case 'a':
             case 'arrowleft':
                 AppState.controls.left = true;
+                updateWASDIndicator('a', true);
                 break;
             case 'd':
             case 'arrowright':
                 AppState.controls.right = true;
+                updateWASDIndicator('d', true);
                 break;
         }
     });
@@ -681,38 +792,52 @@ function setupControls() {
             case 'w':
             case 'arrowup':
                 AppState.controls.forward = false;
+                updateWASDIndicator('w', false);
                 break;
             case 's':
             case 'arrowdown':
                 AppState.controls.backward = false;
+                updateWASDIndicator('s', false);
                 break;
             case 'a':
             case 'arrowleft':
                 AppState.controls.left = false;
+                updateWASDIndicator('a', false);
                 break;
             case 'd':
             case 'arrowright':
                 AppState.controls.right = false;
+                updateWASDIndicator('d', false);
                 break;
         }
     });
     
-    // Mouse controls for looking around
-    document.addEventListener('mousedown', () => { AppState.isDragging = true; });
+    // Mouse controls for looking around - HORIZONTAL ONLY
+    document.addEventListener('mousedown', () => { 
+        AppState.isDragging = true;
+        AppState.dragStartX = 0;
+    });
     document.addEventListener('mouseup', () => { AppState.isDragging = false; });
     document.addEventListener('mouseleave', () => { AppState.isDragging = false; });
 
     document.addEventListener('mousemove', (e) => {
         if (!AppState.isIn3DScene || !AppState.isDragging) return;
         
-        // Sensitivity factor
+        // If locked at object, dragging also exits
+        if (AppState.isLockedAtObject) {
+            exitObjectView();
+            return;
+        }
+        
+        // Track drag distance
+        AppState.dragStartX += Math.abs(e.movementX);
+        
+        // Sensitivity factor - ONLY HORIZONTAL ROTATION
         const sensitivity = 0.002;
         
+        // Only update Y rotation (horizontal)
         AppState.cameraRotation.y += e.movementX * sensitivity;
-        AppState.cameraRotation.x += e.movementY * sensitivity;
-        
-        // Clamp vertical rotation to avoid flipping
-        AppState.cameraRotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, AppState.cameraRotation.x));
+        // Don't update X rotation (vertical) - removed the line
     });
     
     // Click interaction
@@ -723,14 +848,25 @@ function setupControls() {
     window.addEventListener('resize', onWindowResize);
 }
 
+function updateWASDIndicator(key, active) {
+    const keyElement = document.querySelector(`.wasd-key[data-key="${key}"]`);
+    if (keyElement) {
+        if (active) {
+            keyElement.classList.add('active');
+        } else {
+            keyElement.classList.remove('active');
+        }
+    }
+}
+
 function handleClick(event) {
     if (!AppState.camera || !AppState.scene.interactiveObjects) return;
     
-    // If we were dragging, don't register as a click
-    // Simple check: if mouse moved significantly between down and up, it's a drag.
-    // For now, we rely on the fact that click fires after mouseup.
-    // If isDragging is false, it might have been a drag that just ended.
-    // Ideally we track drag distance.
+    // Don't register click if we were dragging
+    if (AppState.dragStartX > 10) {
+        AppState.dragStartX = 0;
+        return;
+    }
     
     const rect = AppState.renderer.domElement.getBoundingClientRect();
     const mouse = new THREE.Vector2();
@@ -754,7 +890,8 @@ function handleClick(event) {
 
 function handleObjectInteraction(object) {
     if (object.type === 'equipment') {
-        showInfoPanel(object.data);
+        // Fly to object and show HUD
+        flyToObject(object);
     } else if (object.type === 'projects-trigger') {
         showProjectsView();
     } else if (object.type === 'members-trigger') {
@@ -766,12 +903,76 @@ function handleObjectInteraction(object) {
     }
 }
 
-function showInfoPanel(equipment) {
-    const panel = document.getElementById('info-panel');
-    document.getElementById('panel-title').textContent = equipment.name;
-    document.getElementById('panel-description').innerHTML = `<p>${equipment.description}</p>`;
-    document.getElementById('panel-specs').innerHTML = `<strong>Specifications:</strong><br>${equipment.specs}`;
-    panel.classList.remove('hidden');
+function flyToObject(object) {
+    if (AppState.isAnimatingToObject) return;
+    
+    AppState.isAnimatingToObject = true;
+    const startPos = {
+        x: AppState.camera.position.x,
+        y: AppState.camera.position.y,
+        z: AppState.camera.position.z
+    };
+    
+    // Calculate position in front of the object
+    const targetPos = {
+        x: object.position.x,
+        y: object.position.y,
+        z: object.position.z + Config.OBJECT_VIEW_DISTANCE
+    };
+    
+    const startTime = Date.now();
+    
+    function animateFly() {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min(elapsed / Config.FLY_TO_OBJECT_DURATION, 1);
+        
+        // Smooth easing function
+        const eased = 1 - Math.pow(1 - progress, 3);
+        
+        AppState.camera.position.x = startPos.x + (targetPos.x - startPos.x) * eased;
+        AppState.camera.position.y = startPos.y + (targetPos.y - startPos.y) * eased;
+        AppState.camera.position.z = startPos.z + (targetPos.z - startPos.z) * eased;
+        
+        // Look at the object
+        const lookAtPos = new THREE.Vector3(object.position.x, object.position.y, object.position.z);
+        AppState.camera.lookAt(lookAtPos);
+        
+        // Update rotation state to match
+        const direction = new THREE.Vector3();
+        AppState.camera.getWorldDirection(direction);
+        AppState.cameraRotation.y = Math.atan2(direction.x, direction.z);
+        
+        if (progress < 1) {
+            requestAnimationFrame(animateFly);
+        } else {
+            AppState.isAnimatingToObject = false;
+            AppState.isLockedAtObject = true;
+            AppState.currentLockedObject = object;
+            showFloatingHUD(object.data);
+        }
+    }
+    
+    animateFly();
+}
+
+function exitObjectView() {
+    AppState.isLockedAtObject = false;
+    AppState.currentLockedObject = null;
+    closeFloatingHUD();
+}
+
+function showFloatingHUD(equipment) {
+    const hud = document.getElementById('floating-hud');
+    document.getElementById('hud-icon').textContent = equipment.icon;
+    document.getElementById('hud-title').textContent = equipment.name;
+    document.getElementById('hud-description').textContent = equipment.description;
+    document.getElementById('hud-specs').innerHTML = equipment.specs;
+    hud.classList.remove('hidden');
+}
+
+function closeFloatingHUD() {
+    const hud = document.getElementById('floating-hud');
+    hud.classList.add('hidden');
 }
 
 function showProjectsView() {
@@ -851,6 +1052,11 @@ function formatDate(dateStr) {
 }
 
 function updateMovement(delta) {
+    // Don't move if locked at object or animating
+    if (AppState.isLockedAtObject || AppState.isAnimatingToObject) {
+        return;
+    }
+    
     const speed = 5.0 * delta; // Adjusted speed for delta time
     const sinRotation = Math.sin(AppState.camera.rotation.y);
     const cosRotation = Math.cos(AppState.camera.rotation.y);
@@ -878,9 +1084,29 @@ function updateMovement(delta) {
 }
 
 function updateCamera() {
-    // Apply rotation directly from state
-    AppState.camera.rotation.y = AppState.cameraRotation.y;
-    AppState.camera.rotation.x = AppState.cameraRotation.x;
+    // Handle zoom-in animation
+    if (AppState.isZoomingIn) {
+        AppState.zoomAnimationProgress += 16.67 / Config.ZOOM_ANIMATION_DURATION; // Assuming ~60fps
+        
+        if (AppState.zoomAnimationProgress >= 1) {
+            AppState.isZoomingIn = false;
+            AppState.zoomAnimationProgress = 1;
+        }
+        
+        // Smooth easing
+        const eased = 1 - Math.pow(1 - AppState.zoomAnimationProgress, 3);
+        
+        AppState.camera.position.z = AppState.initialCameraPos.z + 
+            (AppState.targetCameraPos.z - AppState.initialCameraPos.z) * eased;
+    }
+    
+    // Don't update rotation if locked at object
+    if (!AppState.isLockedAtObject) {
+        // Apply rotation directly from state - HORIZONTAL ONLY
+        AppState.camera.rotation.y = AppState.cameraRotation.y;
+        // Keep X rotation at 0 for horizontal-only rotation
+        AppState.camera.rotation.x = 0;
+    }
 }
 
 function onWindowResize() {
