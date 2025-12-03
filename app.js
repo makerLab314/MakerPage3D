@@ -268,12 +268,6 @@ function initEventListeners() {
     });
 }
 
-function hideLoadingScreen() {
-    setTimeout(() => {
-        document.getElementById('loading-screen').classList.add('hidden');
-    }, 500);
-}
-
 function transitionToDoorScene() {
     const landing = document.getElementById('landing-page');
     const doorScene = document.getElementById('door-scene');
