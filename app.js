@@ -27,7 +27,7 @@ const AppState = {
 
 // Configuration Constants
 const Config = {
-    GAUSSIAN_SPLAT_FILE: './gs_MakerLAB.ply',
+    GAUSSIAN_SPLAT_FILE: './makerLAB.ksplat',
     INTERACTION_DISTANCE: 0.5
 };
 
@@ -366,17 +366,14 @@ function init3DScene() {
         });
 
     // Load Gaussian Splat
-    const viewer = new GaussianSplats3D.Viewer({
+     const viewer = new GaussianSplats3D.Viewer({
         scene: scene,
         renderer: renderer,
         camera: camera,
         useBuiltInControls: false,
-        sharedMemoryForWorkers: false, // Disable shared memory for GitHub Pages compatibility
-        // Safari/WebKit compatibility
+        sharedMemoryForWorkers: false,
         progressiveLoad: false,
-        // Prevent streaming issues
-        format: GaussianSplats3D.SceneFormat.Ply,
-        // Load file completely before parsing begins
+        // format: GaussianSplats3D.SceneFormat.Ply,  <--- DIESE ZEILE LÖSCHEN!
         streamView: false
     });
     

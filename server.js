@@ -29,7 +29,8 @@ const mimeTypes = {
     '.eot': 'application/vnd.ms-fontobject',
     '.otf': 'application/font-otf',
     '.wasm': 'application/wasm',
-    '.ply': 'application/octet-stream'
+    '.ply': 'application/octet-stream',
+    '.ksplat': 'application/octet-stream' // <--- Diese Zeile hinzufügen
 };
 
 const server = http.createServer((req, res) => {
