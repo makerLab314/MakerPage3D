@@ -181,8 +181,12 @@ function logToScreen(message) {
     console.log(message);
 }
 
-// Generate scrolling console code effect
-function generateConsoleCode() {
+// Generate scrolling console code effect for loading screen
+function initConsoleBackground() {
+    const CONSOLE_CODE_LINES = 100;
+    const CONSOLE_SCROLL_LAYERS = 4;
+    const LAYER_DELAY_SECONDS = 5;
+    
     const consoleLines = document.getElementById('console-lines');
     if (!consoleLines) return;
     
@@ -220,7 +224,7 @@ function generateConsoleCode() {
     ];
     
     let codeText = '';
-    for (let i = 0; i < 100; i++) {
+    for (let i = 0; i < CONSOLE_CODE_LINES; i++) {
         const randomSnippet = codeSnippets[Math.floor(Math.random() * codeSnippets.length)];
         codeText += randomSnippet + '\n';
     }
@@ -228,9 +232,9 @@ function generateConsoleCode() {
     consoleLines.textContent = codeText;
     
     // Create multiple scrolling layers for depth effect
-    for (let i = 1; i < 4; i++) {
+    for (let i = 1; i < CONSOLE_SCROLL_LAYERS; i++) {
         const clone = consoleLines.cloneNode(true);
-        clone.style.animationDelay = `${i * 5}s`;
+        clone.style.animationDelay = `${i * LAYER_DELAY_SECONDS}s`;
         clone.style.opacity = `${0.1 / i}`;
         consoleLines.parentElement.appendChild(clone);
     }
@@ -241,7 +245,7 @@ document.addEventListener('DOMContentLoaded', () => {
     logToScreen('App initialized. Waiting for user interaction...');
     initEventListeners();
     checkMobileAndShowWarning();
-    generateConsoleCode();
+    initConsoleBackground();
 });
 
 function checkMobileAndShowWarning() {
