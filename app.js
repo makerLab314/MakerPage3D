@@ -181,11 +181,71 @@ function logToScreen(message) {
     console.log(message);
 }
 
+// Generate scrolling console code effect for loading screen
+function initConsoleBackground() {
+    const CONSOLE_CODE_LINES = 100;
+    const CONSOLE_SCROLL_LAYERS = 4;
+    const LAYER_DELAY_SECONDS = 5;
+    
+    const consoleLines = document.getElementById('console-lines');
+    if (!consoleLines) return;
+    
+    const codeSnippets = [
+        'import * as THREE from "three";',
+        'const scene = new THREE.Scene();',
+        'renderer.setSize(window.innerWidth, window.innerHeight);',
+        'function animate() { requestAnimationFrame(animate); }',
+        'camera.position.set(0, 1.6, 5);',
+        'const geometry = new THREE.BoxGeometry(1, 1, 1);',
+        'material.transparent = true;',
+        'mesh.rotation.x += 0.01;',
+        'scene.add(light);',
+        'loader.load("model.gltf", (gltf) => { scene.add(gltf.scene); });',
+        'console.log("Initializing WebGL context...");',
+        'const raycaster = new THREE.Raycaster();',
+        'controls.update();',
+        'if (intersects.length > 0) { handleClick(); }',
+        'shaderMaterial.uniforms.time.value = clock.getElapsedTime();',
+        'const canvas = document.createElement("canvas");',
+        'ctx.fillStyle = "#00d4ff";',
+        'texture.needsUpdate = true;',
+        'group.children.forEach(child => { child.visible = false; });',
+        'window.addEventListener("resize", onWindowResize);',
+        '// Loading 3D assets...',
+        '// Compiling shaders...',
+        '// Building scene graph...',
+        'const pointLight = new THREE.PointLight(0x00d4ff, 1, 100);',
+        'camera.updateProjectionMatrix();',
+        'renderer.render(scene, camera);',
+        'const helper = new THREE.GridHelper(10, 10);',
+        'gsap.to(object.position, { x: 5, duration: 2 });',
+        'const curve = new THREE.SplineCurve(points);',
+        'mesh.castShadow = true;',
+    ];
+    
+    let codeText = '';
+    for (let i = 0; i < CONSOLE_CODE_LINES; i++) {
+        const randomSnippet = codeSnippets[Math.floor(Math.random() * codeSnippets.length)];
+        codeText += randomSnippet + '\n';
+    }
+    
+    consoleLines.textContent = codeText;
+    
+    // Create multiple scrolling layers for depth effect
+    for (let i = 1; i < CONSOLE_SCROLL_LAYERS; i++) {
+        const clone = consoleLines.cloneNode(true);
+        clone.style.animationDelay = `${i * LAYER_DELAY_SECONDS}s`;
+        clone.style.opacity = `${0.1 / i}`;
+        consoleLines.parentElement.appendChild(clone);
+    }
+}
+
 // Initialize Application
 document.addEventListener('DOMContentLoaded', () => {
     logToScreen('App initialized. Waiting for user interaction...');
     initEventListeners();
     checkMobileAndShowWarning();
+    initConsoleBackground();
 });
 
 function checkMobileAndShowWarning() {
@@ -1056,6 +1116,19 @@ function updateCamera() {
         AppState.camera.rotation.y = AppState.cameraRotation.y;
         // Keep X rotation at 0 for horizontal-only rotation
         AppState.camera.rotation.x = 0;
+    }
+    
+    // Update WASD indicator rotation to match camera
+    updateWASDRotation();
+}
+
+function updateWASDRotation() {
+    const wasdIndicator = document.getElementById('wasd-indicator');
+    if (wasdIndicator && AppState.camera) {
+        // Convert camera Y rotation (radians) to degrees
+        // Negate because CSS rotation is clockwise, camera rotation is counter-clockwise
+        const degrees = -(AppState.camera.rotation.y * 180 / Math.PI);
+        wasdIndicator.style.transform = `rotate(${degrees}deg)`;
     }
 }
 
