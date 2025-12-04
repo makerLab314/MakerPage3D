@@ -123,10 +123,15 @@
 
     <!-- Loading Screen -->
     <div id="loading-screen">
+        <!-- Console Background Effect -->
+        <div class="console-background">
+            <div class="console-line" id="console-lines"></div>
+        </div>
+        
         <!-- Warp Effect Container -->
         <div class="warp-container">
             <!-- Video in center -->
-            <video id="loading-video" class="loading-video" playsinline muted preload="auto">
+            <video id="loading-video" class="loading-video" playsinline muted loop preload="auto">
                 <source src="door_transition.mp4" type="video/mp4">
             </video>
             
@@ -140,10 +145,17 @@
         
         <!-- Loading Info -->
         <div class="loading-info">
-            <h2>Initializing MakerLab...</h2>
+            <h2 class="console-title">
+                <span class="console-prompt">></span> Initializing MakerLab...
+            </h2>
             <div class="progress-container">
                 <div class="progress-bar" id="progress-bar"></div>
                 <span class="progress-text" id="progress-text">0%</span>
+            </div>
+            <div class="console-status" id="console-status">
+                <div class="status-line">▸ Loading 3D environment...</div>
+                <div class="status-line">▸ Initializing shaders...</div>
+                <div class="status-line">▸ Loading assets...</div>
             </div>
             
             <!-- Mobile Warning -->
